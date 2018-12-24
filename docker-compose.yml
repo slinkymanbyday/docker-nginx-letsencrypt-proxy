@@ -5,21 +5,18 @@ services:
         image: annixa/docker-nginx-letsencrypt-proxy:build
         ports:
             - 80:80
-            - 443:443
+            - 8443:8443
         container_name: docker-nginx-letsencrypt-proxy
         logging:
             options:
                 max-size: 50k
         environment:
-            - LE_ENABLED=false
-            # - LE_TEST=true # LE is rate limited. While doing development, be sure to set testing mode so requests don't count against our quota.
             - LE_EMAIL=test@test.com
-            - LE_DOMAIN=domain.com
-            - PROXY_DEST=https://www.google.com
-            # - PROXY_PORT=8443
-            #- SLACK_NOTIFICATIONS_INFRA_URL=https://hooks.slack.com/services/???????? # Be sure to fill this in using your URL for the slack webhook integration
+            - LE_DOMAIN=example.com
+            - PROXY_DEST=http://google.com
+            - PROXY_PORT=8443
         volumes:
-        - "/etc/letsencrypt"
+        # - "/etc/letsencrypt"
         # links:
         #   - mycontainer
         # Be sure to link your container!

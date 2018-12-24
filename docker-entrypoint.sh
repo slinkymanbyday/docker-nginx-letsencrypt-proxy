@@ -46,24 +46,6 @@ else
 
 	openssl req -passout pass: -subj "/C=US/ST=CA/L=San Diego/O=$DOMAINS/OU=TS/CN=$DOMAINS/emailAddress=support@$DOMAINS" -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt
 
-	# https://github.com/Annixa/docker-nginx-letsencrypt-proxy/issues/4
-	# Reintroduce LE_ENABLED mode
-	if [ "$LE_ENABLED" = false ]; then
-		echo "DOCKER NGINX LET'S ENCRYPT: Let's Encrypt is disabled according to the environment variable LE_ENABLED. Using self-signed certificates instead.";
-	else
-		echo "DOCKER NGINX LET'S ENCRYPT: Checking for previous certificate existence";
-		LE_CERT="/etc/letsencrypt/live/$DOMAINS/fullchain.pem";
-		LE_KEY="/etc/letsencrypt/live/$DOMAINS/privkey.pem";
-		if [ -e $LE_CERT ] && [ -e $LE_KEY ]; then
-			cp /etc/letsencrypt/live/$DOMAINS/fullchain.pem /etc/nginx/ssl/nginx.crt;
-			cp /etc/letsencrypt/live/$DOMAINS/privkey.pem /etc/nginx/ssl/nginx.key;
-			echo "DOCKER NGINX LET'S ENCRYPT: Previous keys found. Moved to nginx ssl directory";
-		else
-			echo "DOCKER NGINX LET'S ENCRYPT: No certificates found.";
-		fi
-	fi
-
-
 	# Determine TLS_SETTING
 	# Check to see if env is set and it's one of MODERN, INTERMEDIATE, or OLD.
 	# If check fails, set to MODERN
@@ -89,10 +71,10 @@ else
 	cp -f $TLS_DHPARAMS /etc/nginx/ssl/dhparam.pem
 
 	echo "DOCKER NGINX LET'S ENCRYPT: render nginx configuration with proxy and destination details details";
-	# echo "" > /etc/nginx/sites-enabled/webapp.conf
+	# echo "" > /etc/nginx/conf.d/webapp.conf
 
 	# Updating to support changes in LE
-	envsubst '$PROXY_PORT_FWD' < /etc/nginx/sites-available/wellknown.conf > /etc/nginx/sites-enabled/webapp.conf
+	envsubst '$PROXY_PORT_FWD' < /etc/nginx/sites-available/wellknown.conf > /etc/nginx/conf.d/webapp.conf
 
 	CT=0
 	for i in "${DOMAINS[@]}"; do
@@ -102,17 +84,17 @@ else
 			# Get right VALUE
 			THIS_DEST="${DESTINATIONS[$CT]}"
 		fi
-		envsubst '$PROXY_PORT' < /etc/nginx/sites-available/webapp.1.conf >> /etc/nginx/sites-enabled/webapp.conf
+		envsubst '$PROXY_PORT' < /etc/nginx/sites-available/webapp.1.conf >> /etc/nginx/conf.d/webapp.conf
 
-		echo "ssl_protocols	${TLS_SETTING_PROTOS["$TLS_SETTING"]};" >> /etc/nginx/sites-enabled/webapp.conf
-		echo "ssl_ciphers '${TLS_SETTING_CIPHER["$TLS_SETTING"]}';" >> /etc/nginx/sites-enabled/webapp.conf
+		echo "ssl_protocols	${TLS_SETTING_PROTOS["$TLS_SETTING"]};" >> /etc/nginx/conf.d/webapp.conf
+		echo "ssl_ciphers '${TLS_SETTING_CIPHER["$TLS_SETTING"]}';" >> /etc/nginx/conf.d/webapp.conf
 
-		echo "server_name $i;" >> /etc/nginx/sites-enabled/webapp.conf
-		echo "location / {" >> /etc/nginx/sites-enabled/webapp.conf
+		echo "server_name $i;" >> /etc/nginx/conf.d/webapp.conf
+		echo "location / {" >> /etc/nginx/conf.d/webapp.conf
 
 
-		echo "        proxy_pass          $THIS_DEST;" >> /etc/nginx/sites-enabled/webapp.conf
-		envsubst '$PROXY_PORT' < /etc/nginx/sites-available/webapp.2.conf >> /etc/nginx/sites-enabled/webapp.conf
+		echo "        proxy_pass          $THIS_DEST;" >> /etc/nginx/conf.d/webapp.conf
+		envsubst '$PROXY_PORT' < /etc/nginx/sites-available/webapp.2.conf >> /etc/nginx/conf.d/webapp.conf
 
 		CT=$(($CT + 1))
 	done
